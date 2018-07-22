@@ -1,0 +1,16 @@
+{
+  "name": "matasano",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "jest",
+    "test": "npm start -- --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "jest": "^23.4.1"
+  }
+}
