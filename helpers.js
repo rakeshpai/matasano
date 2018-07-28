@@ -1,3 +1,5 @@
+const { createDecipheriv, createCipheriv } = require('crypto');
+
 const hex = thing => Buffer.from(thing, 'hex');
 const utf8toHex = str => Buffer.from(str, 'utf8');
 const toBase64 = hex => Buffer.from(hex).toString('base64');
@@ -71,8 +73,32 @@ const findKeySizes = input => {
     .map(x => x.keySize);
 };
 
+const pad = (str, length) => {
+  return str + (createArray(length - str.length).map(x => '\x04').join(''));
+};
+
+const ecbEncrypt = (block, key) => {
+  const cipher = createCipheriv('aes-128-ecb', key, '');
+  cipher.setAutoPadding(false);
+
+  return Buffer.concat([
+    cipher.update(block),
+    cipher.final()
+  ])
+};
+
+const ecbDecrypt = (input, key) => {
+  const decipher = createDecipheriv("aes-128-ecb", key, '');
+  decipher.setAutoPadding(false);
+
+  return Buffer.concat([
+    decipher.update(input),
+    decipher.final()
+  ]);
+};
+
 module.exports = {
   hex, utf8toHex, toBase64, fromBase64, scores, createArray,
   singleByteXor, repeatingKeyXor, hammingDistance, splitIntoBlocks,
-  transpose, findKeySizes
+  transpose, findKeySizes, pad, ecbDecrypt, ecbEncrypt
 };

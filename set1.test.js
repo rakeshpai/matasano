@@ -1,9 +1,8 @@
 const { readFileSync } = require('fs');
-const { createDecipheriv } = require('crypto');
 const {
   hex, utf8toHex, toBase64, fromBase64, scores, singleByteXor,
   splitIntoBlocks, repeatingKeyXor, hammingDistance,
-  transpose, findKeySizes
+  transpose, findKeySizes, ecbDecrypt
 } = require("./helpers");
 
 describe('Set 1', () => {
@@ -111,20 +110,23 @@ describe('Set 1', () => {
     const transposed = transpose(blocks);
 
     const key = Buffer.from(transposed.map(b => scores(b)[0].charCode), 'hex');
-    expect(key.toString('utf8')).toEqual('Terminator X: Bring the noise');
-    // console.log(repeatingKeyXor(input, key).toString('utf8'))
+    expect(
+      key.toString('utf8')
+    ).toEqual('Terminator X: Bring the noise');
+
+    expect(
+      repeatingKeyXor(input, key).toString('utf8')
+    ).toEqual(readFileSync('./snapshots/6.txt', 'utf8'));
   });
 
   test('Challenge 7', () => {
     const key = 'YELLOW SUBMARINE';
     const input = fromBase64(readFileSync('./files/7.txt', 'utf8'));
 
-    const decipher = createDecipheriv("aes-128-ecb", key, '');
-
-    result = decipher.update(input, 'hex', 'utf8');
-    result += decipher.final('utf8');
-
-    // console.log(result);
+    const result = ecbDecrypt(input, key);
+    expect(
+      result.toString('utf8')
+    ).toEqual(readFileSync('./snapshots/7.txt', 'utf8'));
   });
 
   test('Challenge 8', () => {
