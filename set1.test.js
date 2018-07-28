@@ -2,7 +2,7 @@ const { readFileSync } = require('fs');
 const { createDecipheriv } = require('crypto');
 const {
   hex, utf8toHex, toBase64, fromBase64, scores, singleByteXor,
-  createArray, splitIntoBlocks, repeatingKeyXor, hammingDistance,
+  splitIntoBlocks, repeatingKeyXor, hammingDistance,
   transpose, findKeySizes
 } = require("./helpers");
 
@@ -128,6 +128,18 @@ describe('Set 1', () => {
   });
 
   test('Challenge 8', () => {
+    const input = readFileSync('./files/8.txt', 'utf8');
+    
+    const lines = input.split('\n').map(line => hex(line));
 
+    const hasDuplicates = lines.map(line => {
+      const blocks = splitIntoBlocks(line, 16);
+      
+      return blocks.some((block, index) => {
+        return line.indexOf(block) > -1 && line.indexOf(block) !== index * 16;
+      });
+    });
+
+    expect(hasDuplicates.findIndex(x => x === true)).toEqual(132);
   });
 });
