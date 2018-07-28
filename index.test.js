@@ -1,8 +1,10 @@
-const {
-  hex, utf8toHex, toBase64, score, scores, singleByteXor,
-  repeatingKeyXor, hammingDistance
-} = require("./helpers");
 const { readFileSync } = require('fs');
+const { createDecipheriv } = require('crypto');
+const {
+  hex, utf8toHex, toBase64, fromBase64, scores, singleByteXor,
+  createArray, splitIntoBlocks, repeatingKeyXor, hammingDistance,
+  transpose, findKeySizes
+} = require("./helpers");
 
 describe('Set 1', () => {
   test('Challenge 1', () => {
@@ -58,10 +60,11 @@ describe('Set 1', () => {
   });
 
   test('Challenge 5', () => {
-    const str = 'Burning \'em, if you ain\'t quick and nimble\nI go crazy when I hear a cymbal';
-
     expect(
-      repeatingKeyXor(utf8toHex(str), utf8toHex('ICE'))
+      repeatingKeyXor(
+        utf8toHex('Burning \'em, if you ain\'t quick and nimble\nI go crazy when I hear a cymbal'),
+        utf8toHex('ICE')
+      )
     ).toEqual(
       hex('0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f')
     )
@@ -74,5 +77,57 @@ describe('Set 1', () => {
         utf8toHex('wokka wokka!!!')
       )
     ).toEqual(37);
+
+    expect(
+      transpose(
+        [
+          [1, 2, 3],
+          [4, 5, 6]
+        ]
+      )
+    ).toEqual(
+      [
+        Buffer.from([1, 4]),
+        Buffer.from([2, 5]),
+        Buffer.from([3, 6])
+      ]
+    );
+
+    expect(
+      splitIntoBlocks([1, 2, 3, 4, 5, 6, 7, 8, 9], 3)
+    ).toEqual(
+      [
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9]
+      ]
+    );
+
+    const input = fromBase64(readFileSync('./files/6.txt', 'utf8').split('\n').join(''));
+
+    const possibleKeySize = findKeySizes(input)[0];
+
+    const blocks = splitIntoBlocks(input, possibleKeySize);
+    const transposed = transpose(blocks);
+
+    const key = Buffer.from(transposed.map(b => scores(b)[0].charCode), 'hex');
+    expect(key.toString('utf8')).toEqual('Terminator X: Bring the noise');
+    // console.log(repeatingKeyXor(input, key).toString('utf8'))
+  });
+
+  test('Challenge 7', () => {
+    const key = 'YELLOW SUBMARINE';
+    const input = fromBase64(readFileSync('./files/7.txt', 'utf8'));
+
+    const decipher = createDecipheriv("aes-128-ecb", key, '');
+
+    result = decipher.update(input, 'hex', 'utf8');
+    result += decipher.final('utf8');
+
+    // console.log(result);
+  });
+
+  test('Challenge 8', () => {
+
   });
 });

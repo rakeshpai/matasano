@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "jest",
-    "test": "npm start -- --watch"
+    "test": "npm start -- --watch --verbose false"
   },
   "keywords": [],
   "author": "",
