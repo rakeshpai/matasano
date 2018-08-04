@@ -84,7 +84,7 @@ const ecbEncrypt = (block, key) => {
   return Buffer.concat([
     cipher.update(block),
     cipher.final()
-  ])
+  ]);
 };
 
 const ecbDecrypt = (input, key) => {
@@ -97,8 +97,46 @@ const ecbDecrypt = (input, key) => {
   ]);
 };
 
+const cbcEncrypt = (input, key) => splitIntoBlocks(input, key.length)
+  .reduce(({ buffer, previousCipher }, block) => {
+    const encrypted = ecbEncrypt(repeatingKeyXor(block, previousCipher), key);
+    return {
+      buffer: Buffer.concat([
+        buffer,
+        encrypted
+      ]),
+      previousCipher: encrypted
+    };
+  }, {
+    buffer: Buffer.from([]),
+    previousCipher: Buffer.from(
+      createArray(key.length)
+        .map(x => String.fromCharCode(0))
+        .join('')
+    )
+  })
+  .buffer
+
+const cbcDecrypt = (input, key) => splitIntoBlocks(input, key.length)
+  .reduce(({ buffer, previousCipher }, block) => ({
+    buffer: Buffer.concat([
+      buffer,
+      repeatingKeyXor(ecbDecrypt(block, key), previousCipher)
+    ]),
+    previousCipher: block
+  }), {
+    buffer: Buffer.from([]),
+    previousCipher: Buffer.from(
+      createArray(key.length)
+        .map(x => String.fromCharCode(0))
+        .join('')
+    )
+  })
+  .buffer
+
 module.exports = {
   hex, utf8toHex, toBase64, fromBase64, scores, createArray,
   singleByteXor, repeatingKeyXor, hammingDistance, splitIntoBlocks,
-  transpose, findKeySizes, pad, ecbDecrypt, ecbEncrypt
+  transpose, findKeySizes, pad, ecbDecrypt, ecbEncrypt,
+  cbcEncrypt, cbcDecrypt
 };
