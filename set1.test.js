@@ -2,7 +2,7 @@ const { readFileSync } = require('fs');
 const {
   hex, utf8toHex, toBase64, fromBase64, scores, singleByteXor,
   splitIntoBlocks, repeatingKeyXor, hammingDistance,
-  transpose, findKeySizes, ecbDecrypt
+  transpose, findKeySizes, ecbDecrypt, isEncryptedWithECB
 } = require("./helpers");
 
 describe('Set 1', () => {
@@ -134,13 +134,7 @@ describe('Set 1', () => {
     
     const lines = input.split('\n').map(line => hex(line));
 
-    const hasDuplicates = lines.map(line => {
-      const blocks = splitIntoBlocks(line, 16);
-      
-      return blocks.some((block, index) => {
-        return line.indexOf(block) > -1 && line.indexOf(block) !== index * 16;
-      });
-    });
+    const hasDuplicates = lines.map(isEncryptedWithECB);
 
     expect(hasDuplicates.findIndex(x => x === true)).toEqual(132);
   });

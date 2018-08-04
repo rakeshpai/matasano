@@ -60,12 +60,13 @@ const findKeySizes = input => {
     .map(keySize => ({
       keySize,
       distance: (() => {
+        const numTrials = 10;
         return splitIntoBlocks(input, keySize)
           .map((block, index, blocks) => {
-            if(index > 10) return;
+            if(index > numTrials) return;
             return hammingDistance(block, blocks[index+1]) / keySize;
           })
-          .slice(0, 10)
+          .slice(0, numTrials)
           .reduce(sum);
       })()
     }))
@@ -77,9 +78,16 @@ const pad = (str, length) => {
   return str + (createArray(length - str.length).map(x => '\x04').join(''));
 };
 
-const ecbEncrypt = (block, key) => {
+const generateRandomBytes = numBytes => Buffer.from(
+  createArray(numBytes).map(() => Math.ceil(Math.random() * 128))
+);
+
+const isEncryptedWithECB = buffer => splitIntoBlocks(buffer, 16)
+  .some((block, index) => buffer.indexOf(block) !== index * 16);
+
+const ecbEncrypt = (block, key, autoPadding = false) => {
   const cipher = createCipheriv('aes-128-ecb', key, '');
-  cipher.setAutoPadding(false);
+  cipher.setAutoPadding(autoPadding);
 
   return Buffer.concat([
     cipher.update(block),
@@ -87,9 +95,9 @@ const ecbEncrypt = (block, key) => {
   ]);
 };
 
-const ecbDecrypt = (input, key) => {
+const ecbDecrypt = (input, key, autoPadding = false) => {
   const decipher = createDecipheriv("aes-128-ecb", key, '');
-  decipher.setAutoPadding(false);
+  decipher.setAutoPadding(autoPadding);
 
   return Buffer.concat([
     decipher.update(input),
@@ -97,9 +105,13 @@ const ecbDecrypt = (input, key) => {
   ]);
 };
 
-const cbcEncrypt = (input, key) => splitIntoBlocks(input, key.length)
+const zeroIV = keyLength => Buffer.from(createArray(keyLength)
+  .map(x => String.fromCharCode(0))
+  .join(''));
+
+const cbcEncrypt = (input, key, autoPadding = false, iv = zeroIV(key.length)) => splitIntoBlocks(input, key.length)
   .reduce(({ buffer, previousCipher }, block) => {
-    const encrypted = ecbEncrypt(repeatingKeyXor(block, previousCipher), key);
+    const encrypted = ecbEncrypt(repeatingKeyXor(block, previousCipher), key, autoPadding);
     return {
       buffer: Buffer.concat([
         buffer,
@@ -109,15 +121,11 @@ const cbcEncrypt = (input, key) => splitIntoBlocks(input, key.length)
     };
   }, {
     buffer: Buffer.from([]),
-    previousCipher: Buffer.from(
-      createArray(key.length)
-        .map(x => String.fromCharCode(0))
-        .join('')
-    )
+    previousCipher: iv
   })
   .buffer
 
-const cbcDecrypt = (input, key) => splitIntoBlocks(input, key.length)
+const cbcDecrypt = (input, key, iv = zeroIV(key.length)) => splitIntoBlocks(input, key.length)
   .reduce(({ buffer, previousCipher }, block) => ({
     buffer: Buffer.concat([
       buffer,
@@ -126,11 +134,7 @@ const cbcDecrypt = (input, key) => splitIntoBlocks(input, key.length)
     previousCipher: block
   }), {
     buffer: Buffer.from([]),
-    previousCipher: Buffer.from(
-      createArray(key.length)
-        .map(x => String.fromCharCode(0))
-        .join('')
-    )
+    previousCipher: iv
   })
   .buffer
 
@@ -138,5 +142,5 @@ module.exports = {
   hex, utf8toHex, toBase64, fromBase64, scores, createArray,
   singleByteXor, repeatingKeyXor, hammingDistance, splitIntoBlocks,
   transpose, findKeySizes, pad, ecbDecrypt, ecbEncrypt,
-  cbcEncrypt, cbcDecrypt
+  cbcEncrypt, cbcDecrypt, isEncryptedWithECB, generateRandomBytes
 };
